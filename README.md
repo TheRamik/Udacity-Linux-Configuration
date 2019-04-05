@@ -5,13 +5,16 @@ Take a baseline installation of a Linux distribution on a virtual machine and pr
 ## Server Information
 
 ### IP Address and SSH Port
-`IP Address: 35.166.108.139`
-`SSH Port: 2200`
+```
+IP Address: 35.166.108.139
+SSH Port: 2200
+```
 
 ### Connect To Server As Grader
 A SSH key called grader.pem is created to allow one to connect as the user called grader.
-
-`ssh -i .ssh/grader.pem grader@35.166.108.139 -p 2200`
+```
+ssh -i .ssh/grader.pem grader@35.166.108.139 -p 2200
+```
 
 ### URL to Web Host Application
 
@@ -106,4 +109,59 @@ grader ALL=(ALL:ALL) ALL
 ```
 > Note: Make sure there are no syntactic errors or grammatic mistakes in the file. If incorrectly written, it may corrupt the sudo command.
 
- 
+### Generate the SSH Key
+In order for the grader to access the web server instance, a SSH key must be created on the local machine and the public key should be placed on the server. This will allow a handshake to be made between the local machine and the server.
+
+Go on a local machine, a Linux or vagrant VM, and generate a SSH key. This can be done with the following command:
+```
+$ cd .ssh/
+$ ssh-keygen
+```
+When ssh-keygen is ran, it will generate two keys, a private key and a public key. Name the file as `grader` and now there should be two files - `grader` and `grader.pub`.
+
+Copy the contents of `grader.pub` to the Lightsail server with the following steps:
+1. On the Lightsail server, switch to the `grader` user. 
+```
+$ sudo su - grader
+```
+
+> Performing the '-' in `su - grader` will also move the current directory to the user's home directory. 
+
+2. Create a directory called `.ssh` and set the permissions to only allow the grader to read, write, or execute anything in that file.
+```
+$ sudo mkdir .ssh/
+$ sudo chown grader:grader /home/grader/.ssh
+$ sudo chmod 700 /home/grader/.ssh
+```
+3. In the `.ssh` directory, create a file called `authorized_keys` and paste the contents from `grader.pub` into this file. Once created, set the permissions to 400
+```
+$ cd .ssh/
+$ sudo vim authorized_keys
+$ sudo chmod 400 authorized_keys
+```
+
+Now that the contents have been copied over, we can go back to the local machine and modify some files and then try to SSH into the Amazon Lightsail server.
+
+On the local machine, navigate to the `.ssh` folder if not in the directory already. Change the name of the file `grader` to `grader.pem` with the following command:
+```
+$ mv grader grader.pem
+```
+
+Connect to the Amazon Lightsail server with the command mentioned in the section above called `Connect To Server As Grader`. The following command is the same command:
+```
+$ ssh -i .ssh/grader.pem grader@35.166.108.139 -p 2200
+```
+Once connected, it is no longer needed for a password as the public key authentication is strong enough. To disable the root login for SSH, modify `/etc/ssh/sshd_config` with the following command:
+```
+$ sudo vim /etc/ssh/sshd_config
+``` 
+Modify the following:
+1. `PermitRootLogin without-password` to `PermitRootLogin no`
+2. Uncomment `PasswordAuthentication no`
+
+After making the following changes, restart ssh with the following command:
+```
+$ sudo service ssh restart
+```
+
+## Deploy Project To Server
