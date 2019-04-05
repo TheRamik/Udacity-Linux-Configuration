@@ -15,27 +15,28 @@ A SSH key called grader.pem is created to allow one to connect as the user calle
 
 ### URL to Web Host Application
 
-Link: 35.166.108.139/catalog
+Link: [35.166.108.139/catalog](35.166.108.139/catalog)
 
 ## Setup
 
 ### Create a New Server Instance on Amazon Lightsail
 
-Follow the necessary steps provided by Udacity in the 'Get started on Lightsail' for the Linux Server Configuration Project.
+Follow the necessary steps provided by Udacity in the **Get started on Lightsail** for the **Linux Server Configuration Project**.
 
 ### Secure The Server
 
 #### Updating Packages
 
 After getting the server, the first step is to update all the currently installed packages. This can be done with the following commands:
-
-`$ sudo apt-get update`
-`$ sudo apt-get upgrade`
+```
+$ sudo apt-get update
+$ sudo apt-get upgrade
+```
 
 If not all packages are updated/upgraded, use the following command:
-
-`$ sudo apt-get dist-upgrade`
-
+```
+$ sudo apt-get dist-upgrade
+```
 #### Changing SSH Port
 
 As a part of securing the server, changing the port from the default port is necessary.
