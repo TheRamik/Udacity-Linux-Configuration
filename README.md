@@ -165,3 +165,129 @@ $ sudo service ssh restart
 ```
 
 ## Deploy Project To Server
+In order to deploy the server, there are certain packages that are needed.
+### Installing Packages
+```
+$ sudo apt-get install python python-pip
+$ sudo apt-get install postgresql
+$ sudo apt-get install python-psycopg2
+$ sudo apt-get install python-setuptools
+$ sudo apt-get install apache2 libapache2-mod-wsgi
+$ sudo apt-get install git
+```
+### Creating Database
+Once all the packages are installed, it is possible to create the database in postgresql where the Flask application can use. Switch to the postgresql command line by performing the following steps:
+```
+$ sudo su - postgres
+postgres $ psql
+postgres=# CREATE DATABASE catalog;
+postgres=# CREATE USER catalog;
+postgres=# ALTER ROLE catalog with PASSWORD 'xxxxxxx';
+postgres=# GRANT ALL PRIVILEGES ON DDATABASE catalog TO catalog;
+```
+### Cloning Project and Modifying Database Path
+After the database has been created, there are three files that need to be modified because we are no longer using sqlite, but postgresql. The project will also need to be stored in a location for the apache server. The following steps will describe what needs to be done:
+
+1. Clone the github project to the itemCatalog folder and rename the folder to itemCatalog. 
+```
+$ cd /var/www
+$ sudo mkdir itemCatalog
+$ cd itemCatalog
+$ git clone https://github.com/TheRamik/Udacity-Item-Catalog
+$ mv Udacity-Item-Catalog itemCatalog
+```
+> The project should now be in `/var/www/itemCatalog/itemCatalog` folder
+
+2. Modify the python files that created an engine for the database. For this project, the files needed to be modified are:
+```
+- database_setup.py
+- populateCategory.py
+- application.py
+```
+Within these files, find the line:
+```
+engine = create_engine('sqlite:///categorycatalogwithusers.db')
+```
+Change it to the following line:
+```
+engine = create_engine('postgresql://catalog:catalog@localhost/catalog')
+```
+3. Once the following files have been modified and saved, we will rename `application.py` to `__init__.py`. We can also remove the .git folder
+```
+$ sudo mv application.py __init__.py
+$ sudo rm -rf .git
+```
+4. Create a Web Server Gateway Interface (WSGI) script. The script should be created in the folder above the application. For this instance, `/var/www/itemCatalog/`.
+```
+$ cd ..
+$ pwd
+/var/www/itemCatalog
+$ sudo vim catalog.wsgi
+```
+Add the following content to the file:
+```
+#!/usr/bin/python
+import sys
+import logging
+logging.basicConfig(stream=sys.stderr)
+sys.path.insert(0,"/var/www/itemCatalog/")
+
+from itemCatalog import app as application
+application.secret_key = 'super_secret_key'
+```
+
+### Virtual Python Environment
+To run the web application, would need to create a virtual python environment and install the necessary content.
+```
+$ sudo python -m virtualenv -p python venv
+$ sudo chown -R <username>:<username> venv
+$ source venv/bin/activate
+$ (venv) pip install flask packaging oauth2client redis passlib flask-httpauth
+$ (venv) pip install sqlalchemy flask-sqlalchemy psycopg2-binary bleach requests
+$ deactivate
+```
+
+### Configure Apache Server
+Configuration with the application and apache server is needed in order to deploy the web application to apache server.
+
+Create a config file for the catalog application 
+```
+$ cd /etc/apache2/sites-available/
+$ sudo vim catalog.conf
+```
+Add the following content to the file:
+```
+<VirtualHost *:80>
+        ServerName 35.166.108.139
+        ServerAdmin <Admin Email>
+        ServerAlias 35.166.108.139*
+
+        WSGIDaemonProcess itemCatalog python-home=/var/www/itemCatalog/itemCatalog/venv
+        WSGIProcessGroup itemCatalog
+        WSGIApplicationGroup %{GLOBAL}
+        WSGIScriptAlias / /var/www/itemCatalog/catalog.wsgi
+        <Directory /var/www/itemCatalog/itemCatalog>
+                Order allow,deny
+                Allow from all
+        </Directory>
+        Alias /static /var/www/itemCatalog/itemCatalog/static
+        <Directory /var/www/itemCatalog/itemCatalog/static/>
+                Order allow,deny
+                Allow from all
+        </Directory>
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        LogLevel warn
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+
+```
+Once the configurations has been made, the apache server is ready. Since the server is already running, we can launch the server again by using the following command:
+```
+$ sudo service apache2 restart
+```
+
+## Acknowledgements
+I learned a great amount on deploying a server from the Udacity Programs, but I was also able to find great sources online which provided the necessary information to get a server running.
+
+Link: [Efren Aguilar Repository on Linux Server Configuration](https://github.com/efrenaguilar95/Udacity-Linux-Server-Configuration)
+Line: [DigitalOcean - How to Deploy a Flask Application on an Ubuntu VPS](https://www.digitalocean.com/community/tutorials/how-to-deploy-a-flask-application-on-an-ubuntu-vps)
